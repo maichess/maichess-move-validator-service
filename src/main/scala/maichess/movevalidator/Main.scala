@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import zio.{Runtime, Unsafe, ZIO, ZIOAppDefault}
 import maichess.movevalidator.grpc.MovesServiceImpl
 import maichess.movevalidator.service.ValidatorServiceLive
-import maichess.movevalidator.v1.moves.{
+import maichess.move_validator.v1.moves.moves.{
   GetLegalMovesRequest,
   GetLegalMovesResponse,
   MovesGrpc,

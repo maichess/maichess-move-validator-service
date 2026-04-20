@@ -5,7 +5,7 @@ import zio.test.*
 import zio.ZIO
 import maichess.movevalidator.grpc.MovesServiceImpl
 import maichess.movevalidator.service.ValidatorServiceLive
-import maichess.movevalidator.v1.moves.{GetLegalMovesRequest, ValidateMoveRequest}
+import maichess.move_validator.v1.moves.moves.{GetLegalMovesRequest, ValidateMoveRequest}
 
 // NOTE: This spec depends on ZioMoves.ZMoves being present in platform-protos.
 // See CONTRACT_NOTES.md for the blocker and proposed fix.

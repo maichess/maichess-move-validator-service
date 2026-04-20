@@ -4,7 +4,7 @@ import io.grpc.Status
 import zio.{IO, UIO, URLayer, ZIO, ZLayer}
 import maichess.movevalidator.domain.{Fen, GameResult, UciMove, ValidationResult}
 import maichess.movevalidator.service.ValidatorService
-import maichess.movevalidator.v1.moves.{
+import maichess.move_validator.v1.moves.moves.{
   GameResult => ProtoGameResult,
   GetLegalMovesRequest,
   GetLegalMovesResponse,
