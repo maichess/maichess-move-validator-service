@@ -11,11 +11,9 @@ object WinConditionDetector:
     if noMoves && inCheck then
       if board.sideToMove == Color.White then GameResult.BlackWon else GameResult.WhiteWon
     else if noMoves then GameResult.Stalemate
-    else if isDraw(board) then GameResult.Draw
+    else if isFiftyMoveRule(board) then GameResult.FiftyMoveRule
+    else if isInsufficientMaterial(board) then GameResult.InsufficientMaterial
     else GameResult.None
-
-  private def isDraw(board: Board): Boolean =
-    isFiftyMoveRule(board) || isInsufficientMaterial(board)
 
   private def isFiftyMoveRule(board: Board): Boolean =
     board.halfMoveClock >= 100

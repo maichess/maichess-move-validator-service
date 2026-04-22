@@ -41,30 +41,30 @@ object WinConditionDetectorSpec extends ZIOSpecDefault:
         case Left(err) => assertTrue(false) ?? err
         case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Stalemate)
     },
-    test("fifty-move rule → Draw") {
+    test("fifty-move rule → FiftyMoveRule") {
       FenParser.parse(fiftyMoveFen) match
         case Left(err) => assertTrue(false) ?? err
-        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Draw)
+        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.FiftyMoveRule)
     },
-    test("K vs K → Draw") {
+    test("K vs K → InsufficientMaterial") {
       FenParser.parse(kVsKFen) match
         case Left(err) => assertTrue(false) ?? err
-        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Draw)
+        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.InsufficientMaterial)
     },
-    test("K+B vs K → Draw") {
+    test("K+B vs K → InsufficientMaterial") {
       FenParser.parse(kbVsKFen) match
         case Left(err) => assertTrue(false) ?? err
-        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Draw)
+        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.InsufficientMaterial)
     },
-    test("K+N vs K → Draw") {
+    test("K+N vs K → InsufficientMaterial") {
       FenParser.parse(knVsKFen) match
         case Left(err) => assertTrue(false) ?? err
-        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Draw)
+        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.InsufficientMaterial)
     },
-    test("K+B vs K+B same color → Draw") {
+    test("K+B vs K+B same color → InsufficientMaterial") {
       FenParser.parse(bbSameFen) match
         case Left(err) => assertTrue(false) ?? err
-        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.Draw)
+        case Right(b)  => assertTrue(WinConditionDetector.detect(b) == GameResult.InsufficientMaterial)
     },
     test("normal mid-game → None") {
       FenParser.parse(midGameFen) match

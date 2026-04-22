@@ -16,9 +16,19 @@ object MovesServiceImplSpec extends ZIOSpecDefault:
   private val makeImpl = ZIO.succeed(new MovesServiceImpl(new ValidatorServiceLive))
 
   def spec = suite("MovesServiceImplSpec")(
-    test("ValidateMove with valid move returns valid = true and non-empty resulting_fen") {
+    test("ValidateMove with valid move returns valid = true, non-empty resulting_fen, and non-empty position_history") {
       makeImpl.flatMap(_.validateMove(ValidateMoveRequest(fen = startFen, move = "e2e4"))).map { res =>
-        assertTrue(res.valid, res.resultingFen.nonEmpty)
+        assertTrue(res.valid, res.resultingFen.nonEmpty, res.positionHistory.nonEmpty)
+      }
+    },
+    test("ValidateMove detects threefold repetition") {
+      val fen = "8/8/4k3/8/8/4K3/8/8 w - - 2 10"
+      val repeatedKey = "8/8/4k3/8/8/5K2/8/8 b - -"
+      import maichess.move_validator.v1.moves.moves.{GameResult => ProtoGameResult}
+      makeImpl.flatMap(_.validateMove(ValidateMoveRequest(
+        fen = fen, move = "e3f3", positionHistory = Seq(repeatedKey, repeatedKey)
+      ))).map { res =>
+        assertTrue(res.valid, res.gameResult == ProtoGameResult.GAME_RESULT_THREEFOLD_REPETITION)
       }
     },
     test("ValidateMove with illegal move returns valid = false and non-empty reason") {
