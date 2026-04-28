@@ -2,7 +2,15 @@
 
 ## Service responsibility
 
-Accepts a full game state (FEN) and a proposed move (UCI notation), validates legality, and returns the resulting position plus any win condition. Also enumerates all legal moves for a given position. Called exclusively by **Match Manager** over gRPC.
+Validates chess moves and enumerates legal moves for a given position. The sole authority for all
+chess notation and board logic in the platform.
+
+Exposes four RPCs:
+- **`ValidateMove`** / **`GetLegalMoves`** — UCI variants, called by Match Manager
+- **`ValidateMoveSan`** / **`GetLegalMovesSan`** — SAN variants, called by Analysis Service
+
+All four share the same internal board logic. SAN generation includes piece disambiguation,
+check/checkmate suffixes, castling, en passant, and promotion notation.
 
 See `maichess-knowledge-base/maichess-structure.md` for architecture context.
 
@@ -15,7 +23,7 @@ maichess-api-contracts/protos/move-validator-service/v1/moves.proto
 ```
 
 Service: `maichess.move_validator.v1.Moves`  
-RPCs: `ValidateMove`, `GetLegalMoves`
+RPCs: `ValidateMove`, `ValidateMoveSan`, `GetLegalMoves`, `GetLegalMovesSan`
 
 Read the proto before touching any service logic. Do not infer the contract from implementation code.
 
