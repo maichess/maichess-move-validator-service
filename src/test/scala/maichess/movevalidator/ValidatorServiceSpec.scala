@@ -2,7 +2,7 @@ package maichess.movevalidator
 
 import zio.test.*
 import zio.ZIO
-import maichess.movevalidator.domain.{Fen, GameResult, UciMove, ValidationResult}
+import maichess.movevalidator.domain.{Fen, GameResult, LegalMoveSan, UciMove, ValidateSanResult, ValidationResult}
 import maichess.movevalidator.service.{ValidatorService, ValidatorServiceLive}
 
 object ValidatorServiceSpec extends ZIOSpecDefault:
@@ -66,6 +66,74 @@ object ValidatorServiceSpec extends ZIOSpecDefault:
     },
     test("legalMoves with invalid FEN returns failed ZIO") {
       svc.flatMap(_.legalMoves(invalidFen).either)
+        .map(r => assertTrue(r.isLeft))
+    },
+
+    // ── validateMoveSan ───────────────────────────────────────────────────────
+    test("validateMoveSan with valid SAN returns Valid with uciMove") {
+      svc.flatMap(_.validateMoveSan(startFen, "e4", Nil)).map {
+        case ValidateSanResult.Valid(fen, _, _, uci) =>
+          assertTrue(fen.value.nonEmpty, uci == "e2e4")
+        case ValidateSanResult.Invalid(r) => assertTrue(false) ?? r
+      }
+    },
+    test("validateMoveSan with unknown SAN returns Invalid with reason") {
+      svc.flatMap(_.validateMoveSan(startFen, "Nf6", Nil)).map {
+        case ValidateSanResult.Invalid(r)        => assertTrue(r.nonEmpty)
+        case ValidateSanResult.Valid(_, _, _, _) => assertTrue(false) ?? "Nf6 is not legal for white"
+      }
+    },
+    test("validateMoveSan with invalid FEN returns failed ZIO") {
+      svc.flatMap(_.validateMoveSan(invalidFen, "e4", Nil).either)
+        .map(r => assertTrue(r.isLeft))
+    },
+
+    // ── legalMovesSan ─────────────────────────────────────────────────────────
+    test("legalMovesSan from starting position returns 20 moves") {
+      svc.flatMap(_.legalMovesSan(startFen)).map(moves => assertTrue(moves.size == 20))
+    },
+    test("legalMovesSan each move has non-empty uci and san") {
+      svc.flatMap(_.legalMovesSan(startFen)).map { moves =>
+        assertTrue(moves.forall(m => m.uci.nonEmpty && m.san.nonEmpty))
+      }
+    },
+    test("legalMovesSan includes e4 with SAN e4") {
+      svc.flatMap(_.legalMovesSan(startFen)).map { moves =>
+        assertTrue(moves.exists(m => m.uci == "e2e4" && m.san == "e4"))
+      }
+    },
+    test("legalMovesSan with invalid FEN returns failed ZIO") {
+      svc.flatMap(_.legalMovesSan(invalidFen).either)
+        .map(r => assertTrue(r.isLeft))
+    },
+
+    // ── convertSequenceToSan ─────────────────────────────────────────────────
+    test("convertSequenceToSan empty sequence returns empty list") {
+      svc.flatMap(_.convertSequenceToSan(startFen, Nil))
+        .map(sans => assertTrue(sans.isEmpty))
+    },
+    test("convertSequenceToSan Fool's mate sequence returns correct SAN list") {
+      // f3, e5, g4, Qh4#
+      val moves = List("f2f3", "e7e5", "g2g4", "d8h4")
+      svc.flatMap(_.convertSequenceToSan(startFen, moves)).map { sans =>
+        assertTrue(sans == List("f3", "e5", "g4", "Qh4#"))
+      }
+    },
+    test("convertSequenceToSan illegal move at index 0 fails with index 0") {
+      svc.flatMap(_.convertSequenceToSan(startFen, List("e2e5")).either).map {
+        case Left(msg) => assertTrue(msg.contains("0"))
+        case Right(_)  => assertTrue(false) ?? "expected failure"
+      }
+    },
+    test("convertSequenceToSan illegal move at index 2 fails with index 2") {
+      val moves = List("e2e4", "e7e5", "e4e7")
+      svc.flatMap(_.convertSequenceToSan(startFen, moves).either).map {
+        case Left(msg) => assertTrue(msg.contains("2"))
+        case Right(_)  => assertTrue(false) ?? "expected failure"
+      }
+    },
+    test("convertSequenceToSan with invalid FEN returns failed ZIO") {
+      svc.flatMap(_.convertSequenceToSan(invalidFen, List("e2e4")).either)
         .map(r => assertTrue(r.isLeft))
     },
   ).provide(ValidatorServiceLive.layer)

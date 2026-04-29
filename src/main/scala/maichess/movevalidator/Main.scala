@@ -16,11 +16,17 @@ import zio.{Runtime, Unsafe, ZIO, ZIOAppDefault}
 import maichess.movevalidator.grpc.MovesServiceImpl
 import maichess.movevalidator.service.ValidatorServiceLive
 import maichess.move_validator.v1.moves.moves.{
+  ConvertSequenceToSanRequest,
+  ConvertSequenceToSanResponse,
   GetLegalMovesRequest,
   GetLegalMovesResponse,
+  GetLegalMovesSanRequest,
+  GetLegalMovesSanResponse,
   MovesGrpc,
   ValidateMoveRequest,
   ValidateMoveResponse,
+  ValidateMoveSanRequest,
+  ValidateMoveSanResponse,
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
@@ -92,4 +98,19 @@ object Main extends ZIOAppDefault:
     def getLegalMoves(request: GetLegalMovesRequest): Future[GetLegalMovesResponse] =
       Unsafe.unsafe { implicit u =>
         runtime.unsafe.runToFuture(svc.getLegalMoves(request).mapError(_.asException()))
+      }
+
+    def validateMoveSan(request: ValidateMoveSanRequest): Future[ValidateMoveSanResponse] =
+      Unsafe.unsafe { implicit u =>
+        runtime.unsafe.runToFuture(svc.validateMoveSan(request))
+      }
+
+    def getLegalMovesSan(request: GetLegalMovesSanRequest): Future[GetLegalMovesSanResponse] =
+      Unsafe.unsafe { implicit u =>
+        runtime.unsafe.runToFuture(svc.getLegalMovesSan(request).mapError(_.asException()))
+      }
+
+    def convertSequenceToSan(request: ConvertSequenceToSanRequest): Future[ConvertSequenceToSanResponse] =
+      Unsafe.unsafe { implicit u =>
+        runtime.unsafe.runToFuture(svc.convertSequenceToSan(request).mapError(_.asException()))
       }
