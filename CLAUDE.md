@@ -82,3 +82,9 @@ No business logic in the gRPC handler — it translates proto types to/from doma
 - Do not change tests to make them pass — only change tests when the requirement they cover changes.
 - Unit-test domain logic (FEN parsing, move generation, win detection) without a running server.
 - Integration-test the gRPC handler via the ZIO gRPC test harness, not a live network socket.
+
+### Mutation testing
+
+Stryker4s is wired up as an sbt plugin. Config lives in `stryker4s.conf`
+(only `Main.scala` excluded). Run with `sbt stryker` from the service root.
+See `README.md` for details.
