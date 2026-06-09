@@ -12,9 +12,10 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.`export`.BatchSpanProcessor
 import io.opentelemetry.semconv.ServiceAttributes
 import scala.concurrent.Future
-import zio.{Runtime, Unsafe, ZIO, ZIOAppDefault}
+import zio.{Duration, Runtime, Schedule, Unsafe, ZIO, ZIOAppDefault}
 import maichess.movevalidator.grpc.MovesServiceImpl
-import maichess.movevalidator.service.ValidatorServiceLive
+import maichess.movevalidator.kafka.MoveValidatorStream
+import maichess.movevalidator.service.{ValidatorService, ValidatorServiceLive}
 import maichess.move_validator.v1.moves.moves.{
   ConvertSequenceToSanRequest,
   ConvertSequenceToSanResponse,
@@ -37,6 +38,25 @@ object Main extends ZIOAppDefault:
 
   private val otlpEndpoint: String =
     sys.env.getOrElse("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
+
+  // The stream processor is opt-in (KAFKA_ENABLED=true in staging); off in prod
+  // where Kafka is not deployed, so the service runs as a pure gRPC query server.
+  private val kafkaEnabled: Boolean =
+    sys.env.get("KAFKA_ENABLED").exists(_.equalsIgnoreCase("true"))
+
+  private val kafkaBootstrap: List[String] =
+    sys.env.getOrElse("KAFKA_BOOTSTRAP", "kafka:9092").split(',').map(_.trim).toList
+
+  // Runs concurrently with the gRPC server. Retries forever so a transient broker
+  // outage never takes down the query path; ZIO.never when Kafka is disabled.
+  private val kafkaWork: ZIO[ValidatorService, Nothing, Unit] =
+    if kafkaEnabled then
+      MoveValidatorStream
+        .run(kafkaBootstrap)
+        .tapErrorCause(cause => ZIO.logErrorCause("move-validator stream failed; retrying", cause))
+        .retry(Schedule.spaced(Duration.fromSeconds(5)))
+        .ignore
+    else ZIO.never
 
   private def buildTracerProvider(): SdkTracerProvider =
     val resource = Resource.getDefault().merge(
@@ -64,7 +84,7 @@ object Main extends ZIOAppDefault:
           ZIO.acquireReleaseWith(
             ZIO.attempt(startServer(svc, runtime, grpcTelemetry.newServerInterceptor()))
           )(s => ZIO.attempt(s.shutdown()).orDie) { _ =>
-            ZIO.logInfo(s"gRPC server listening on port $port") *> ZIO.never
+            ZIO.logInfo(s"gRPC server listening on port $port") *> kafkaWork
           }
         }
       }.provide(MovesServiceImpl.layer, ValidatorServiceLive.layer)

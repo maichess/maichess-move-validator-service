@@ -52,7 +52,9 @@ lazy val root = (project in file("."))
     coverageEnabled          := true,
     coverageMinimumStmtTotal := 100,
     coverageFailOnMinimum    := true,
-    coverageExcludedFiles    := ".*Main.*",
+    // Main = server entry point; MoveValidatorStream = live-Kafka I/O shell (the
+    // pure MoveValidationProcessor it drives is covered).
+    coverageExcludedFiles    := ".*(Main|MoveValidatorStream).*",
 
     // ── SemanticDB for Scalafix ───────────────────────────────────────────────
     semanticdbEnabled := true,
