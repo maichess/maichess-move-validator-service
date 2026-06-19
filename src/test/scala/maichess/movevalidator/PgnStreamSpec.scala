@@ -62,6 +62,12 @@ object PgnStreamSpec extends ZIOSpecDefault:
         assertTrue(result.isLeft)
       }
     },
+    test("illegal move failure reports the index and SAN") {
+      // Black's Qh4 at index 1 is blocked; the error must name the index and the move.
+      PgnStream.processGames(ZStream("1. e4 Qh4")).either.map { result =>
+        assertTrue(result == Left("Illegal move at index 1: Qh4"))
+      }
+    },
 
     // ── processLines: line-based pipeline ────────────────────────────────────
     test("processLines assembles and processes a single game") {

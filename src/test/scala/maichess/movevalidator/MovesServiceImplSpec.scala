@@ -47,6 +47,12 @@ object MovesServiceImplSpec extends ZIOSpecDefault:
         assertTrue(!res.valid)
       }
     },
+    test("ValidateMove with valid FEN but malformed UCI returns valid = false and reason") {
+      // Exercises the UciMove.parse error arm (valid FEN, but the move cannot be parsed).
+      makeImpl.flatMap(_.validateMove(ValidateMoveRequest(fen = startFen, move = "zzzz"))).map { res =>
+        assertTrue(!res.valid, res.reason.nonEmpty)
+      }
+    },
     test("GetLegalMoves from starting position returns exactly 20 moves") {
       makeImpl.flatMap(_.getLegalMoves(GetLegalMovesRequest(fen = startFen))).map { res =>
         assertTrue(res.moves.size == 20)

@@ -55,6 +55,24 @@ object ValidatorServiceSpec extends ZIOSpecDefault:
         case ValidationResult.Invalid(r)      => assertTrue(false) ?? r
       }
     },
+    test("two prior occurrences (exactly) trigger threefold on a piece-ful position") {
+      // A rook keeps the position out of insufficient-material territory, so the
+      // fallback is None — sharpening the count >= 2 boundary.
+      val fen         = Fen("4k3/8/8/8/8/8/8/4KR2 w - - 5 10")
+      val repeatedKey = "4k3/8/8/8/8/8/5R2/4K3 b - -"
+      svc.flatMap(_.validateMove(fen, UciMove("f1f2"), List(repeatedKey, repeatedKey))).map {
+        case ValidationResult.Valid(_, gr, _) => assertTrue(gr == GameResult.ThreefoldRepetition)
+        case ValidationResult.Invalid(r)      => assertTrue(false) ?? r
+      }
+    },
+    test("a single prior occurrence does not trigger threefold") {
+      val fen         = Fen("4k3/8/8/8/8/8/8/4KR2 w - - 5 10")
+      val repeatedKey = "4k3/8/8/8/8/8/5R2/4K3 b - -"
+      svc.flatMap(_.validateMove(fen, UciMove("f1f2"), List(repeatedKey))).map {
+        case ValidationResult.Valid(_, gr, _) => assertTrue(gr == GameResult.None)
+        case ValidationResult.Invalid(r)      => assertTrue(false) ?? r
+      }
+    },
     test("pawn move resets position history regardless of prior entries") {
       svc.flatMap(_.validateMove(startFen, UciMove("e2e4"), List("some key", "another key"))).map {
         case ValidationResult.Valid(_, _, history) => assertTrue(history.size == 1)

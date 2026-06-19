@@ -85,6 +85,11 @@ object SanNotationSpec extends ZIOSpecDefault:
       val b = board(startFen)
       assertTrue(SanNotation.toSan(b, chessMoveFor(b, "g1f3")) == "Nf3")
     },
+    test("king move Ke2") {
+      // Exercises the King arm of pieceChar (the "K" prefix).
+      val b = board("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+      assertTrue(SanNotation.toSan(b, chessMoveFor(b, "e1e2")) == "Ke2")
+    },
     test("knight Nc3") {
       val b = board(startFen)
       assertTrue(SanNotation.toSan(b, chessMoveFor(b, "b1c3")) == "Nc3")
