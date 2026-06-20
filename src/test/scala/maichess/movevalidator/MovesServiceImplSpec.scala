@@ -2,9 +2,10 @@ package maichess.movevalidator
 
 import io.grpc.Status
 import zio.test.*
-import zio.ZIO
+import zio.{IO, ZIO}
+import maichess.movevalidator.domain.{Fen, LegalMoveSan, UciMove, ValidateSanResult, ValidationResult}
 import maichess.movevalidator.grpc.MovesServiceImpl
-import maichess.movevalidator.service.ValidatorServiceLive
+import maichess.movevalidator.service.{ValidatorService, ValidatorServiceLive}
 import maichess.move_validator.v1.moves.moves.{
   ConvertSequenceToSanRequest,
   GetLegalMovesRequest,
@@ -20,6 +21,20 @@ object MovesServiceImplSpec extends ZIOSpecDefault:
   private val startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
   private val makeImpl = ZIO.succeed(new MovesServiceImpl(new ValidatorServiceLive))
+
+  // A validator whose effects always fail in the String error channel, so the handler's
+  // validator-layer mapError arms (valid = false) are exercised and pinned.
+  private val failingValidator: ValidatorService = new ValidatorService:
+    def validateMove(fen: Fen, move: UciMove, positionHistory: List[String]): IO[String, ValidationResult] =
+      ZIO.fail("validator failed (move)")
+    def legalMoves(fen: Fen): IO[String, List[UciMove]] =
+      ZIO.fail("validator failed")
+    def validateMoveSan(fen: Fen, san: String, positionHistory: List[String]): IO[String, ValidateSanResult] =
+      ZIO.fail("validator failed (san)")
+    def legalMovesSan(fen: Fen): IO[String, List[LegalMoveSan]] =
+      ZIO.fail("validator failed")
+    def convertSequenceToSan(startingFen: Fen, uciMoves: List[String]): IO[String, List[String]] =
+      ZIO.fail("validator failed")
 
   def spec = suite("MovesServiceImplSpec")(
     test("ValidateMove with valid move returns valid = true, non-empty resulting_fen, and non-empty position_history") {
@@ -53,6 +68,14 @@ object MovesServiceImplSpec extends ZIOSpecDefault:
         assertTrue(!res.valid, res.reason.nonEmpty)
       }
     },
+    test("ValidateMove maps a validator-layer failure to valid = false with the reason") {
+      // FEN and UCI parse cleanly, so the only error source is the validator effect — the
+      // handler must surface it as valid = false rather than the mutated valid = true.
+      new MovesServiceImpl(failingValidator)
+        .validateMove(ValidateMoveRequest(fen = startFen, move = "e2e4")).map { res =>
+          assertTrue(!res.valid, res.reason == "validator failed (move)")
+        }
+    },
     test("GetLegalMoves from starting position returns exactly 20 moves") {
       makeImpl.flatMap(_.getLegalMoves(GetLegalMovesRequest(fen = startFen))).map { res =>
         assertTrue(res.moves.size == 20)
@@ -80,6 +103,14 @@ object MovesServiceImplSpec extends ZIOSpecDefault:
       makeImpl.flatMap(_.validateMoveSan(ValidateMoveSanRequest(fen = "garbage", move = "e4"))).map { res =>
         assertTrue(!res.valid)
       }
+    },
+    test("ValidateMoveSan maps a validator-layer failure to valid = false with the reason") {
+      // Valid FEN, so the validator effect is the only error source; the handler must
+      // surface it as valid = false rather than the mutated valid = true.
+      new MovesServiceImpl(failingValidator)
+        .validateMoveSan(ValidateMoveSanRequest(fen = startFen, move = "e4")).map { res =>
+          assertTrue(!res.valid, res.reason == "validator failed (san)")
+        }
     },
 
     // ── GetLegalMovesSan ──────────────────────────────────────────────────────

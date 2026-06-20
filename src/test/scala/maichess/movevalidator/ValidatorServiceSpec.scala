@@ -73,6 +73,16 @@ object ValidatorServiceSpec extends ZIOSpecDefault:
         case ValidationResult.Invalid(r)      => assertTrue(false) ?? r
       }
     },
+    test("three prior occurrences (count > 2) still report threefold repetition") {
+      // The boundary is `>= 2`, not `== 2`: a count of three prior occurrences must also
+      // be a repetition rather than falling through to the normal win-condition check.
+      val fen         = Fen("4k3/8/8/8/8/8/8/4KR2 w - - 5 10")
+      val repeatedKey = "4k3/8/8/8/8/8/5R2/4K3 b - -"
+      svc.flatMap(_.validateMove(fen, UciMove("f1f2"), List(repeatedKey, repeatedKey, repeatedKey))).map {
+        case ValidationResult.Valid(_, gr, _) => assertTrue(gr == GameResult.ThreefoldRepetition)
+        case ValidationResult.Invalid(r)      => assertTrue(false) ?? r
+      }
+    },
     test("pawn move resets position history regardless of prior entries") {
       svc.flatMap(_.validateMove(startFen, UciMove("e2e4"), List("some key", "another key"))).map {
         case ValidationResult.Valid(_, _, history) => assertTrue(history.size == 1)

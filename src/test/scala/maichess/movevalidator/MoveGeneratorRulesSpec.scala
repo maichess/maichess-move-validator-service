@@ -1,7 +1,7 @@
 package maichess.movevalidator
 
 import zio.test.*
-import maichess.movevalidator.rules.{FenParser, LegalityFilter, MoveGenerator}
+import maichess.movevalidator.rules.{ChessMove, FenParser, LegalityFilter, MoveGenerator, PieceType, Square}
 
 // Targets the MoveGenerator mutants around castling generation (coordinate strings and
 // the right/empty guards) and pawn promotion (the promoChar table and the promotion
@@ -56,5 +56,18 @@ object MoveGeneratorRulesSpec extends ZIOSpecDefault:
     test("a non-promoting pawn push carries no promotion suffix") {
       val moves = pseudoUcis("4k3/8/8/8/8/4P3/8/4K3 w - - 0 1")
       assertTrue(moves.contains("e3e4"), !moves.contains("e3e4q"))
+    },
+
+    // ── exhaustive promoChar table (the King/Pawn arms are unreachable from real
+    //    promotions, so they are pinned by encoding a constructed move directly) ──
+    test("toUci encodes the King promoChar arm as 'k'") {
+      val from = Square.fromAlgebraic("e7").get
+      val to   = Square.fromAlgebraic("e8").get
+      assertTrue(MoveGenerator.toUci(ChessMove.Normal(from, to, Some(PieceType.King))).value == "e7e8k")
+    },
+    test("toUci encodes the Pawn promoChar arm as 'p'") {
+      val from = Square.fromAlgebraic("e7").get
+      val to   = Square.fromAlgebraic("e8").get
+      assertTrue(MoveGenerator.toUci(ChessMove.Normal(from, to, Some(PieceType.Pawn))).value == "e7e8p")
     },
   )

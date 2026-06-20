@@ -21,6 +21,10 @@ object WinConditionDetectorExtraSpec extends ZIOSpecDefault:
     test("half-move clock 99 does not trigger the fifty-move rule") {
       assertTrue(detect("q3k3/8/8/8/8/8/8/Q3K3 w - - 99 60") == GameResult.None)
     },
+    test("half-move clock above 100 still triggers the fifty-move rule") {
+      // The threshold is `>= 100`, not `== 100`: 101 plies must still be the fifty-move rule.
+      assertTrue(detect("q3k3/8/8/8/8/8/8/Q3K3 w - - 101 60") == GameResult.FiftyMoveRule)
+    },
 
     // ── bishop-pair insufficient-material conditions ─────────────────────────
     test("opposite-coloured bishops on opposite square colours are not insufficient") {

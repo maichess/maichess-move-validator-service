@@ -86,5 +86,35 @@ No business logic in the gRPC handler — it translates proto types to/from doma
 ### Mutation testing
 
 Stryker4s is wired up as an sbt plugin. Config lives in `stryker4s.conf`
-(only `Main.scala` excluded). Run with `sbt stryker` from the service root.
-See `README.md` for details.
+(`Main.scala` and `kafka/MoveValidatorStream.scala` excluded). Run with
+`sbt stryker` from the service root. See `README.md` for details.
+
+#### Known surviving mutants (equivalent / unreachable — do **not** "fix")
+
+The suite kills every behaviourally-distinguishable mutant (current score
+~97.8% total / ~98.0% of covered code). The mutants below survive because they
+are **equivalent** — the mutation cannot change observable behaviour for any
+*reachable* input — or sit on **dead defensive branches**. Killing them would
+require asserting impossible/undefined behaviour or refactoring chess logic
+purely to game the score, so they are left intentionally.
+
+- **Castle file comparisons `>` ⇄ `>=`** — `MoveApplicator.scala:87` (`kingSide`),
+  `SanNotation.scala:8` (`to.file > 4`), `LegalityFilter.scala:35` (castle
+  pass-square). A castle's destination is always the c- or g-file and its origin
+  the e-file, so the operands are never equal.
+- **`PgnParser.scala:22` `spaceIdx > 0` ⇄ `>=`** — `inner` is trimmed before
+  `indexOf(' ')`, so the index is never `0`.
+- **Dead `fold(false)` fall-throughs `false` ⇄ `true`** — `LegalityFilter.scala:36`
+  and `MoveGenerator.scala:101` only fold over hard-coded valid squares, so the
+  `None` branch never executes.
+- **`SanNotation.scala:34` `exists` ⇄ `forall`** — the source square in `disambig`
+  always holds a piece (it comes from the legal-move list).
+- **WinConditionDetector bishop-pair logic** — `:27` (`Bishop && Bishop`), `:35`
+  (`b1.isDefined && b2.isDefined`), `:39` (`c == color`), `:40` (parity `% 2 == 0`).
+  The redundant type/defined guards and the symmetric / consistently-flipped
+  comparisons cannot change the `b1 == b2` outcome.
+- **`ValidatorServiceLive.scala:62` (NoCoverage)** — the `"Cannot parse move"`
+  branch is unreachable: a move that passes `isLegal` always has a parseable UCI.
+
+When auditing mutation results, treat the above as the expected baseline; any
+**new** survivor outside this list is a genuine test gap.

@@ -68,6 +68,10 @@ object FenMessageSpec extends ZIOSpecDefault:
       // s.nonEmpty guards the forall — an empty string must not slip through.
       assertTrue(Fen.parse("k6K/8/8/8/8/8/8/8 w  - 0 1").isLeft)
     },
+    test("a castling token mixing valid and invalid chars is rejected") {
+      // forall (not exists): a single bad char ('x') after a good one ('K') must reject.
+      assertTrue(Fen.parse("k6K/8/8/8/8/8/8/8 w Kx - 0 1").isLeft)
+    },
 
     // ── en-passant boundary matrix (file a–h, rank 3 or 6) ───────────────────
     test("en passant a3 (lower file, rank 3) accepted") {

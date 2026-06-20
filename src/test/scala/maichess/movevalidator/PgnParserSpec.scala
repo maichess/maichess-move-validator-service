@@ -129,6 +129,11 @@ object PgnParserSpec extends ZIOSpecDefault:
     test("parseHeader with no closing bracket returns None") {
       assertTrue(PgnParser.parseHeader("[Broken") == None)
     },
+    test("parseHeader with a key/value space but no closing bracket returns None") {
+      // endsWith("]") must really require the bracket: an unterminated but otherwise
+      // well-formed header (it has a space separator) must still be rejected.
+      assertTrue(PgnParser.parseHeader("[Event \"Test\"") == None)
+    },
     test("parseHeader with no space returns None") {
       assertTrue(PgnParser.parseHeader("[NoValue]") == None)
     },
